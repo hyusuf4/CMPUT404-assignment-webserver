@@ -1,7 +1,9 @@
 #  coding: utf-8 
 import socketserver
+import os
 
-# Copyright 2013 Abram Hindle, Eddie Antonio Santos
+
+# Copyright 2013 Abram Hindle, Eddie Antonio Santos, Hamdi Yusuf
 # 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,11 +30,92 @@ import socketserver
 
 
 class MyWebServer(socketserver.BaseRequestHandler):
-    
+
+
     def handle(self):
         self.data = self.request.recv(1024).strip()
-        print ("Got a request of: %s\n" % self.data)
-        self.request.sendall(bytearray("OK",'utf-8'))
+        self.data=self.data.decode("utf-8")
+        #isolating and making the path of the GET request recieved from the client
+        request=self.data.split('\n')[0]
+        get_request=request.split()[1]
+        main_directory=os.path.abspath("www")
+        path=main_directory+get_request
+        print(request)
+        print(main_directory)
+        print('\n')
+        print(get_request)
+        
+      
+        #checking if the request is anything other than a GET request
+        if not request.startswith('GET'):
+            self.error405()
+        else:
+            #checking if the path exists and routing to appropriate pages
+            if(os.path.exists(path)):
+                if path.endswith('html'):
+                    self.route('html',path)
+                elif path.endswith('css'):
+                    self.route('css',path)
+                elif path.endswith('/'):
+                     path=path+'/index.html'
+                     self.route('html',path)
+                elif "/.." in path:
+                    print('im here ')
+                    self.error404()
+                else:
+                    self.error301(path)
+            else:
+                self.error404()
+            
+    #this function renders html and css files to the client
+    def route(self,request_type,path):
+        file_response=open(path).read()
+        if request_type=='html':
+            mimetype='text/html'
+        if request_type=='css':
+            mimetype='text/css'
+        self.request.send(b'HTTP/1.0 200 OK\n') 
+        self.request.send(bytearray('Content-Type: {} \n'.format(mimetype),'utf-8'))
+        self.request.send(b'\n')
+        self.request.send(bytearray(file_response,'utf-8'))
+    
+    
+    # this function handles request error recieved from client and renders error pages
+    def error301(self,path):
+        header=b'HTTP/1.0 301 Moved Permanently\r\n'
+        location='location : {}'.format(path+'/index.html')
+        self.request.send(header)
+        self.request.send(b'Content-Type: text/html \n')
+        self.request.send(bytearray(location,'utf-8'))
+        self.request.send(b'\r\n')
+
+    def error405(self):
+        header=b'HTTP/1.0 405 Method Not Allowed\r\n'
+        html=b"""
+                <html>
+                    <body>
+                        <h1>405 Error Method Not Allowed</h1>
+                    </body>
+                </html>
+            """
+        self.request.send(header)
+        self.request.send(b'Content-Type: text/html \n')
+        self.request.send(b'\r\n')
+        self.request.send(html)
+    def error404(self):
+        header=b'HTTP/1.0 404 Not Found\r\n'
+        html=b"""
+                <html>
+                    <body>
+                        <h1>404 Error Page Not Found</h1>
+                    </body>
+                </html>
+            """
+        self.request.send(header)
+        self.request.send(b'Content-Type: text/html \n')
+        self.request.send(b'\r\n')
+        self.request.send(html)
+    
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
