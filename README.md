@@ -21,7 +21,7 @@ server.py contains contributions from:
 
 Collaborator:
 
-abdurahm
+ *Abdurahman Hersi (abdurahm)
 
 But the server.py example is derived from the python documentation
 examples thus some of the code is Copyright © 2001-2013 Python
