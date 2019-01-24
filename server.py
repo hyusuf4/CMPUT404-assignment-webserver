@@ -39,12 +39,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         request=self.data.split('\n')[0]
         get_request=request.split()[1]
         main_directory=os.path.abspath("www")
-        path=main_directory+get_request
-        print(request)
-        print(main_directory)
-        print('\n')
-        print(get_request)
-        
+        path=main_directory+get_request    
       
         #checking if the request is anything other than a GET request
         if not request.startswith('GET'):
@@ -60,10 +55,9 @@ class MyWebServer(socketserver.BaseRequestHandler):
                      path=path+'/index.html'
                      self.route('html',path)
                 elif "/.." in path:
-                    print('im here ')
                     self.error404()
                 else:
-                    self.error301(path)
+                    self.error301(get_request)
             else:
                 self.error404()
             
@@ -81,9 +75,10 @@ class MyWebServer(socketserver.BaseRequestHandler):
     
     
     # this function handles request error recieved from client and renders error pages
-    def error301(self,path):
+    def error301(self,request):
         header=b'HTTP/1.0 301 Moved Permanently\r\n'
-        location='location : {}'.format(path+'/index.html')
+        host='http://127.0.0.1:8080'
+        location='location : {}'.format(host+request+'/')
         self.request.send(header)
         self.request.send(b'Content-Type: text/html \n')
         self.request.send(bytearray(location,'utf-8'))
